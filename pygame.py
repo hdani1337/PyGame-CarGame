@@ -10,8 +10,10 @@ pygame.init()
 fekete = (0,0,0)
 feher = (255,255,255)
 kek = (0,0,255)
-zold = (0,255,0)
-piros = (255,0,0)
+zold = (0,175,0)
+vilZold = (0,255,0)
+piros = (175,0,0)
+vilPiros = (255,0,0)
 
 #Méretek
 display_szelesseg = 840 #Azért így adjuk meg, mert később még hivatkozunk rá
@@ -34,11 +36,17 @@ kocsiKep = pygame.image.load('img/car.png') #Az autó, amivel vagyunk
 kocsiKepUtk = pygame.image.load('img/carCrash.png') #Az autónk, ha ütköztünk
 hatterKep = pygame.image.load('img/bg.png') #A háttérkép
 hatterKepLost = pygame.image.load('img/bg_lost.png') #Háttérkép, ha vesztettél
+hatterKepIntro = pygame.image.load('img/bg_intro.png') #Intro háttér
 masikKocsi = pygame.image.load('img/enemyCar.png') #A szembe jövő autó
 masikKocsiUtk = pygame.image.load('img/enemyCarCrash.png') #A szembe jövő autó, ha ütközik
 
 
 #Metódusok
+
+def pont(szamlalo):
+    font = pygame.font.Font('pygame/calibrib.ttf', 18)
+    text = font.render("Pontszám: " + str(szamlalo), True, feher)
+    display.blit(text, (10,62))
 
 def enemy(x,y):
     global enemyX
@@ -75,10 +83,6 @@ def kiir(szoveg):
 
     pygame.display.update()
 
-    time.sleep(3)
-
-    game()
-
 def kocsi(x,y):
     display.blit(kocsiKep,(x,y)) #Az ablakunkra (display) ,,rányomjuk" (blit) a kocsit (kocsiKep) arra a pozícióra (x,y), amit majd megadunk
 
@@ -88,21 +92,21 @@ def hatter():
 def hatterLost():
     display.blit(hatterKepLost,(0,0))
 
-def kocsiUtk(x,y):
+def kocsiUtk(x,y): #a saját kocsi ütközése
     display.blit(kocsiKepUtk,(x,y))
     pygame.display.update()
 
-def enemyUtk(x,y):
+def enemyUtk(x,y): #ütközés az ellenféllel
     display.blit(masikKocsiUtk,(x,y))
     pygame.display.update()
 
-def utkozesKorlat(x,y):
+def utkozesKorlat(x,y): #a saját kocsi ütlözik a korláttal
     hatterLost()
     kocsiUtk(x,y)
     time.sleep(3)
     game()
 
-def utkozesKocsi(x,y,x_enemy,y_enemy):
+def utkozesKocsi(x,y,x_enemy,y_enemy): #a saját kocsi ütközik az ellenféllel
     hatterLost()
     pygame.display.update()
     kocsiUtk(x,y)
@@ -110,8 +114,50 @@ def utkozesKocsi(x,y,x_enemy,y_enemy):
     time.sleep(3)
     game()
 
+def gomb(uzenet,x,y,szelesseg,magassag,aktivSzin,inaktivSzin,funkcio=None):
+    kurzor = pygame.mouse.get_pos()
+    katt = pygame.mouse.get_pressed()
+
+    if x+szelesseg > kurzor[0] > x and y+magassag > kurzor[1] >y:
+        pygame.draw.rect(display,aktivSzin,(x,y,szelesseg,magassag))
+        
+        if katt[0] == 1 and funkcio != None:
+            if funkcio == "Start":
+                game()
+
+            if funkcio == "Kilépés":
+                pygame.quit()
+                quit()
+    else:
+        pygame.draw.rect(display,inaktivSzin,(x,y,szelesseg,magassag))
+
+    szoveg = pygame.font.Font('pygame/calibrib.ttf', 30)
+    szovegSurf, szovegDoboz = szoveg_obj(uzenet, szoveg)
+    szovegDoboz.center =  ((x+(szelesseg/2)), (y+(magassag/2)))
+    display.blit(szovegSurf, szovegDoboz)
+
+def intro():
+
+    intro = True
+
+    while intro:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+
+        display.blit(hatterKepIntro,(0,0))
+
+        gomb("Start",210,437,150,50,vilZold,zold,"Start")
+        gomb("Kilépés",475,437,150,50,vilPiros,piros,"Kilépés")
+
+        pygame.display.update()
+
 def game():
     kilepve = False
+
+    global pontszam
+    pontszam = 0
 
     kx = (display_szelesseg * 0.465)#Kocsi x koordinátája
     ky = (display_magassag * 0.79)#Kocsi y koordinátája
@@ -144,6 +190,7 @@ def game():
         enemy(enemy_kezdX,enemy_kezdY) #Meghívjuk az ellenfelet
         enemy_kezdY += enemy_sebesseg #Menjen az ellenfél
         kocsi(kx,ky) #Meghívjuk a kocsinkat
+        pont(pontszam) #Pontszámláló
 
         #Ütközés
         if kx < korlat1 or kx > korlat2 - kocsiSzelesseg: #Ha nekimegy az autó valamelyik korlátnak
@@ -153,19 +200,22 @@ def game():
             enemy_kezdY = -100 #Menjen vissza a pálya tetejénél feljebb 100 pixellel, hogy ne egyből jöjjön az autó
             enemy_sebesseg += 0.5 #Növeljük a sebességet
             enemy_kezdX = random.randrange(1,4) #Váltsunk sávot
+            pontszam += 1 #Növeljük a pontszámot
 
 
         if ky < enemy_kezdY + ellensegMagassag:
             if kx < enemyX and kx + kocsiSzelesseg > enemyX:
                 utkozesKocsi(kx,ky,enemyX,enemy_kezdY)
+                pontszam = 0
 
             if enemyX + ellensegSzelesseg < kx + kocsiSzelesseg and enemyX + ellensegSzelesseg > kx:
                 utkozesKocsi(kx,ky,enemyX,enemy_kezdY)
+                pontszam = 0
             
         
         pygame.display.update() #Frissítjuk a képet
         fps.tick(60) #Másodpercenkénti képfrissítés száma
 
-game()
+intro()
 pygame.quit()
 quit()
