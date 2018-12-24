@@ -32,6 +32,7 @@ ellensegMagassag = 94 #A kocsi magassága, az ütközésnél fog kelleni
 #Ablak tulajdonságai
 display = pygame.display.set_mode((display_szelesseg,display_magassag)) #Ablak mérete
 pygame.display.set_caption('Ámokfutás v0.1') #Ablak címe
+pygame.display.set_icon(pygame.image.load('img/icon.png'))
 fps = pygame.time.Clock() #Ezt később hívjuk meg, itt adjuk meg a képkockák számát másodpercenként
 
 #Képek
@@ -44,6 +45,12 @@ hatterKepOpt = pygame.image.load('img/bg_opt.png') #Beállítások háttér
 hatterKepPause = pygame.image.load('img/bg_pause.png') #Szünet háttere
 masikKocsi = pygame.image.load('img/enemyCar.png') #A szembe jövő autó
 masikKocsiUtk = pygame.image.load('img/enemyCarCrash.png') #A szembe jövő autó, ha ütközik
+logoKep = pygame.image.load('img/logo.png') #Logo
+
+#Hangok
+crashHang = pygame.mixer.Sound('sound/crash.wav')
+pygame.mixer_music.load('sound/ballblazer.mp3')
+exitHang = pygame.mixer.Sound('sound/exit.wav')
 
 #Metódusok
 
@@ -55,6 +62,10 @@ def pont(szamlalo):
 def enemy(x,y):
     global enemyX
 
+    if x == 5:
+        x -= random.randrange(1,4)
+        return x
+    
     if x == 1:
         display.blit(masikKocsi,(195,y)) #Első sáv
         enemyX = 195
@@ -105,12 +116,16 @@ def enemyUtk(x,y): #ütközés az ellenféllel
     pygame.display.update()
 
 def utkozesKorlat(x,y): #a saját kocsi ütlözik a korláttal
+    pygame.mixer.Sound.play(crashHang)
+    pygame.mixer.music.stop()
     hatterLost()
     kocsiUtk(x,y)
     time.sleep(3)
     fokozat()
 
 def utkozesKocsi(x,y,x_enemy,y_enemy): #a saját kocsi ütközik az ellenféllel
+    pygame.mixer.Sound.play(crashHang)
+    pygame.mixer.music.stop()
     hatterLost()
     pygame.display.update()
     kocsiUtk(x,y)
@@ -133,13 +148,16 @@ def gomb(uzenet,x,y,szelesseg,magassag,aktivSzin,inaktivSzin,funkcio=None):
                 fokozat()
 
             if funkcio == "Kilépés":
+                pygame.mixer.music.stop()
+                pygame.mixer.Sound.play(exitHang)
+                time.sleep(3.5)
                 pygame.quit()
                 quit()
 
             if funkcio == "Könnyű":
                 nehezseg = 3
                 nehezsegNov = 0.3
-                game(nehezseg,nehezsegNov)
+                game(nehezseg,nehezsegNov)    
                 
 
             if funkcio == "Normál":
@@ -164,6 +182,8 @@ def gomb(uzenet,x,y,szelesseg,magassag,aktivSzin,inaktivSzin,funkcio=None):
 def pause(temp1,temp2,pont,carx,cary,myX):
     pause = True
 
+    pygame.mixer.music.pause()
+
     while pause:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -172,6 +192,7 @@ def pause(temp1,temp2,pont,carx,cary,myX):
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_p:
+                    pygame.mixer.music.unpause()
                     gameContinue(temp1,temp2,pont,carx,cary,myX)
                 if event.key == pygame.K_ESCAPE:
                     intro()
@@ -182,6 +203,8 @@ def pause(temp1,temp2,pont,carx,cary,myX):
 def intro():
 
     intro = True
+    pygame.mixer.music.load('sound/ballblazer.mp3')
+    pygame.mixer.music.play()
 
     while intro:
         for event in pygame.event.get():
@@ -195,6 +218,16 @@ def intro():
         gomb("Kilépés",475,437,150,50,vilPiros,piros,"Kilépés")
 
         pygame.display.update()
+
+def logo():
+    
+    display.fill(feher)
+    display.blit(logoKep,(331,272))
+
+    pygame.display.update()
+    
+    time.sleep(3)
+    intro()
    
 def fokozat():
     nehez = True
@@ -225,6 +258,9 @@ def game(neh,nehNov):
     enemy_sebesseg = neh
 
     pontszam = 0
+
+    pygame.mixer.music.load('sound/kirby.mp3') #Kirby zene betöltése
+    pygame.mixer.music.play() #Háttérzene
 
     while not kilepve:
         if neh == 0:
@@ -265,9 +301,8 @@ def game(neh,nehNov):
         if enemy_kezdY > display_magassag: #Ha az ellenség kilép a képből, akkor
             enemy_kezdY = -100 #Menjen vissza a pálya tetejénél feljebb 100 pixellel, hogy ne egyből jöjjön az autó
             enemy_sebesseg += nehNov #Növeljük a sebességet azon a nehézségen, amit kiválasztunk a beállításokban
-            enemy_kezdX = random.randrange(1,4) #Váltsunk sávot
+            enemy_kezdX = random.randrange(1,5) #Váltsunk sávot
             pontszam += 1 #Növeljük a pontszámot
-
 
         if ky < enemy_kezdY + ellensegMagassag:
             if kx < enemyX and kx + kocsiSzelesseg > enemyX:
@@ -282,7 +317,7 @@ def game(neh,nehNov):
         pygame.display.update() #Frissítjuk a képet
         fps.tick(60) #Másodpercenkénti képfrissítés száma
 
-def gameContinue(neh,nehNov,temp,carx,cary,myX):
+def gameContinue(neh,nehNov,temp,carx,cary,myX):#A pause után így indítsa el a játékot, hogy megmaradjanak a pontszámok és a pozíciók
     kilepve = False
 
     kx = myX #Kocsi x koordinátája
@@ -334,7 +369,7 @@ def gameContinue(neh,nehNov,temp,carx,cary,myX):
         if enemy_kezdY > display_magassag: #Ha az ellenség kilép a képből, akkor
             enemy_kezdY = -100 #Menjen vissza a pálya tetejénél feljebb 100 pixellel, hogy ne egyből jöjjön az autó
             enemy_sebesseg += nehNov #Növeljük a sebességet azon a nehézségen, amit kiválasztunk a beállításokban
-            enemy_kezdX = random.randrange(1,4) #Váltsunk sávot
+            enemy_kezdX = random.randrange(1,5) #Váltsunk sávot
             pontszam += 1 #Növeljük a pontszámot
 
 
@@ -351,6 +386,6 @@ def gameContinue(neh,nehNov,temp,carx,cary,myX):
         pygame.display.update() #Frissítjuk a képet
         fps.tick(60) #Másodpercenkénti képfrissítés száma
 
-intro()
+logo()
 pygame.quit()
 quit()
