@@ -31,7 +31,7 @@ ellensegMagassag = 94 #A kocsi magassága, az ütközésnél fog kelleni
 
 #Ablak tulajdonságai
 display = pygame.display.set_mode((display_szelesseg,display_magassag)) #Ablak mérete
-pygame.display.set_caption('Ámokfutás v0.1') #Ablak címe
+pygame.display.set_caption('Ámokfutás v0.5') #Ablak címe
 pygame.display.set_icon(pygame.image.load('img/icon.png'))
 fps = pygame.time.Clock() #Ezt később hívjuk meg, itt adjuk meg a képkockák számát másodpercenként
 
@@ -54,10 +54,25 @@ exitHang = pygame.mixer.Sound('sound/exit.wav')
 
 #Metódusok
 
+def muted(muted): 
+    if muted % 2 == 1:
+        pygame.mixer.music.pause()
+        
+    if muted % 2 == 0:
+        pygame.mixer.music.unpause()
+
 def pont(szamlalo):
     font = pygame.font.Font('pygame/calibrib.ttf', 18)
     text = font.render("Pontszám: " + str(szamlalo), True, feher)
-    display.blit(text, (10,62))
+
+    if szamlalo >= 0:
+        if szamlalo < 10:
+            display.blit(text, (10,62))
+        if szamlalo >= 10:
+            if szamlalo >= 100:
+                display.blit(text, (3,62))
+            else:
+                display.blit(text, (7.5,62))
 
 def enemy(x,y):
     global enemyX
@@ -155,19 +170,19 @@ def gomb(uzenet,x,y,szelesseg,magassag,aktivSzin,inaktivSzin,funkcio=None):
                 quit()
 
             if funkcio == "Könnyű":
-                nehezseg = 3
-                nehezsegNov = 0.3
+                nehezseg = 4
+                nehezsegNov = 0.4
                 game(nehezseg,nehezsegNov)    
                 
 
             if funkcio == "Normál":
-                nehezseg = 5
-                nehezsegNov = 0.5
+                nehezseg = 6
+                nehezsegNov = 0.6
                 game(nehezseg,nehezsegNov)
 
             if funkcio == "Nehéz":
-                nehezseg = 7
-                nehezsegNov = 0.7
+                nehezseg = 8
+                nehezsegNov = 0.8
                 game(nehezseg,nehezsegNov)
 
 
@@ -237,6 +252,9 @@ def fokozat():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    intro()
 
         display.blit(hatterKepOpt,(0,0))
 
@@ -248,6 +266,7 @@ def fokozat():
 
 def game(neh,nehNov):
     kilepve = False
+    mute = 0
 
     kx = (display_szelesseg * 0.465)#Kocsi x koordinátája
     ky = (display_magassag * 0.79)#Kocsi y koordinátája
@@ -282,6 +301,9 @@ def game(neh,nehNov):
                     intro()
                 if event.key == pygame.K_p:
                     pause(neh,nehNov,pontszam,enemy_kezdX,enemy_kezdY,kx)
+                if event.key == pygame.K_m:
+                    mute += 1
+                    muted(mute)
 
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_LEFT or event.key == pygame.K_RIGHT or event.key == pygame.K_a or event.key == pygame.K_d:
@@ -319,6 +341,7 @@ def game(neh,nehNov):
 
 def gameContinue(neh,nehNov,temp,carx,cary,myX):#A pause után így indítsa el a játékot, hogy megmaradjanak a pontszámok és a pozíciók
     kilepve = False
+    mute = 0
 
     kx = myX #Kocsi x koordinátája
     ky = (display_magassag * 0.79)#Kocsi y koordinátája
@@ -350,6 +373,9 @@ def gameContinue(neh,nehNov,temp,carx,cary,myX):#A pause után így indítsa el 
                     intro()
                 if event.key == pygame.K_p:
                     pause(neh,nehNov,pontszam,enemy_kezdX,enemy_kezdY, kx)
+                if event.key == pygame.K_m:
+                    mute += 1
+                    muted(mute)
 
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_LEFT or event.key == pygame.K_RIGHT or event.key == pygame.K_a or event.key == pygame.K_d:
@@ -381,7 +407,6 @@ def gameContinue(neh,nehNov,temp,carx,cary,myX):#A pause után így indítsa el 
             if enemyX + ellensegSzelesseg < kx + kocsiSzelesseg and enemyX + ellensegSzelesseg > kx:
                 utkozesKocsi(kx,ky,enemyX,enemy_kezdY)
                 pontszam = 0
-            
         
         pygame.display.update() #Frissítjuk a képet
         fps.tick(60) #Másodpercenkénti képfrissítés száma
